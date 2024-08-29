@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Roblox Follower Rig",
     "author": "Jax",
-    "version": (1, 1),
+    "version": (1, 2),
     "blender": (4, 0, 0),
     "location": "View3D > Jax's Stuff",
-    "description": "Set up Roblox Follower Rig",
+    "description": "Set up Roblox Follower Rig with custom export and material consolidation",
     "category": "Rigging",
 }
 
@@ -13,6 +13,24 @@ from bpy.types import Operator, Panel
 from bpy.props import BoolProperty
 
 VALID_NAMES = {"LeftLeg", "RightLeg", "RightArm", "LeftArm", "Head", "Torso"}
+
+def consolidate_materials(obj):
+    if len(obj.material_slots) > 0:
+        # Keep the first material and rename it
+        first_material = obj.material_slots[0].material
+        first_material.name = "RobloxMat"
+        
+        # Remove all other materials
+        for i in range(len(obj.material_slots) - 1, 0, -1):
+            obj.data.materials.pop(index=i)
+        
+        # Assign the remaining material to all faces
+        for polygon in obj.data.polygons:
+            polygon.material_index = 0
+    else:
+        # If no materials, create a new one
+        mat = bpy.data.materials.new(name="RobloxMat")
+        obj.data.materials.append(mat)
 
 class ROBLOX_OT_follower_rig(Operator):
     bl_idname = "object.roblox_follower_rig"
@@ -79,6 +97,9 @@ class ROBLOX_OT_follower_rig(Operator):
         modifier.object = armature
         modifier.use_vertex_groups = True
         
+        # Consolidate materials
+        consolidate_materials(torso)
+        
         self.report({'INFO'}, "Roblox Follower Rig setup complete")
 
         if context.scene.roblox_export_when_done:
@@ -86,22 +107,11 @@ class ROBLOX_OT_follower_rig(Operator):
             armature.select_set(True)
             torso.select_set(True)
             bpy.context.view_layer.objects.active = armature
-
             bpy.ops.export_scene.fbx(
                 'INVOKE_DEFAULT',
-                use_selection=True,
                 object_types={'ARMATURE', 'MESH'},
-                apply_scale_options='FBX_SCALE_ALL',
-                bake_anim=False,
-                use_mesh_modifiers=True,
-                add_leaf_bones=False,
-                primary_bone_axis='Y',
-                secondary_bone_axis='X',
-                axis_forward='-Z',
-                axis_up='Y',
-                use_armature_deform_only=True,
-                bake_space_transform=False,
-                use_metadata=True
+                use_selection=True,
+                apply_scale_options='FBX_SCALE_ALL'
             )
 
         return {'FINISHED'}
