@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Roblox Follower Rig",
     "author": "Jax",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Jax's Stuff",
     "description": "Set up Roblox Follower Rig",
@@ -10,6 +10,7 @@ bl_info = {
 
 import bpy
 from bpy.types import Operator, Panel
+from bpy.props import BoolProperty
 
 VALID_NAMES = {"LeftLeg", "RightLeg", "RightArm", "LeftArm", "Head", "Torso"}
 
@@ -79,6 +80,30 @@ class ROBLOX_OT_follower_rig(Operator):
         modifier.use_vertex_groups = True
         
         self.report({'INFO'}, "Roblox Follower Rig setup complete")
+
+        if context.scene.roblox_export_when_done:
+            bpy.ops.object.select_all(action='DESELECT')
+            armature.select_set(True)
+            torso.select_set(True)
+            bpy.context.view_layer.objects.active = armature
+
+            bpy.ops.export_scene.fbx(
+                'INVOKE_DEFAULT',
+                use_selection=True,
+                object_types={'ARMATURE', 'MESH'},
+                apply_scale_options='FBX_SCALE_ALL',
+                bake_anim=False,
+                use_mesh_modifiers=True,
+                add_leaf_bones=False,
+                primary_bone_axis='Y',
+                secondary_bone_axis='X',
+                axis_forward='-Z',
+                axis_up='Y',
+                use_armature_deform_only=True,
+                bake_space_transform=False,
+                use_metadata=True
+            )
+
         return {'FINISHED'}
 
 class VIEW3D_PT_roblox_follower_rig(Panel):
@@ -105,12 +130,19 @@ class VIEW3D_PT_roblox_follower_rig(Panel):
             layout.label(text=f"Missing: {', '.join(missing_parts)}", icon='ERROR')
         
         layout.operator("object.roblox_follower_rig")
+        layout.prop(context.scene, "roblox_export_when_done")
 
 def register():
+    bpy.types.Scene.roblox_export_when_done = BoolProperty(
+        name="Export when done",
+        description="Open FBX export dialogue after applying rig",
+        default=False
+    )
     bpy.utils.register_class(ROBLOX_OT_follower_rig)
     bpy.utils.register_class(VIEW3D_PT_roblox_follower_rig)
 
 def unregister():
+    del bpy.types.Scene.roblox_export_when_done
     bpy.utils.unregister_class(VIEW3D_PT_roblox_follower_rig)
     bpy.utils.unregister_class(ROBLOX_OT_follower_rig)
 
