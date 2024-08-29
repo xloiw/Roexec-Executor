@@ -11,3 +11,6 @@ https://discord.gg/htg3PWaWkU
 * Your Roblox Avatar split up into 6 parts "LeftLeg, LeftArm, RightLeg, RightArm, Torso, Head"
 * Select both the Armature and Body parts
 * Hit the big apply mesh button and export!
+
+
+![image](https://github.com/user-attachments/assets/d85dd3fa-34db-4ea5-97d2-2883fd8e6492)
