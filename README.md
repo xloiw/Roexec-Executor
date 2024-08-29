@@ -1,2 +1,8 @@
 # Roblox-follower-Rig
-Repo for my products plugin
+Small script that makes applying your Roblox avatar to my Follower asset for VRchat a whole lot easier.
+
+# Requirments
+* Blender 4.0+
+* Your Roblox Avatar split up into 6 parts "LeftLeg, LeftArm, RightLeg, RightArm, Torso, Head"
+* Select both the Armature and Body parts
+* Hit the big apply mesh button and export!
