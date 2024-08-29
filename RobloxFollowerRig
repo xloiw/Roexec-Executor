@@ -1,0 +1,118 @@
+bl_info = {
+    "name": "Roblox Follower Rig",
+    "author": "Jax",
+    "version": (1, 0),
+    "blender": (4, 0, 0),
+    "location": "View3D > Jax's Stuff",
+    "description": "Set up Roblox Follower Rig",
+    "category": "Rigging",
+}
+
+import bpy
+from bpy.types import Operator, Panel
+
+VALID_NAMES = {"LeftLeg", "RightLeg", "RightArm", "LeftArm", "Head", "Torso"}
+
+class ROBLOX_OT_follower_rig(Operator):
+    bl_idname = "object.roblox_follower_rig"
+    bl_label = "Apply Meshes to Rig"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        armature = bpy.data.objects.get("Armature")
+        
+        if armature is None or armature.type != 'ARMATURE':
+            self.report({'ERROR'}, "No armature named 'Armature' found in the scene")
+            return {'CANCELLED'}
+        
+        torso = None
+        parts_to_join = []
+        
+        for obj in bpy.context.selected_objects:
+            if obj.type != 'MESH' or obj.name not in VALID_NAMES:
+                continue
+            
+            if obj.name == "Torso":
+                torso = obj
+            else:
+                parts_to_join.append(obj)
+        
+        if not torso:
+            self.report({'ERROR'}, "No object named 'Torso' found")
+            return {'CANCELLED'}
+        
+        for obj in parts_to_join + [torso]:
+            if obj.parent == armature:
+                obj.parent = None
+            
+            bpy.ops.object.select_all(action='DESELECT')
+            obj.select_set(True)
+            armature.select_set(True)
+            bpy.context.view_layer.objects.active = armature
+            
+            bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+            
+            for vg in obj.vertex_groups:
+                obj.vertex_groups.remove(vg)
+            
+            vertex_group = obj.vertex_groups.new(name=obj.name)
+            vertex_group.add(range(len(obj.data.vertices)), 1.0, 'REPLACE')
+        
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in parts_to_join:
+            obj.select_set(True)
+        torso.select_set(True)
+        bpy.context.view_layer.objects.active = torso
+        
+        bpy.ops.object.join()
+        
+        torso.name = "Avatar"
+        
+        if torso.parent != armature:
+            torso.parent = armature
+            torso.parent_type = 'ARMATURE'
+        
+        modifier = torso.modifiers.get("Armature")
+        if not modifier:
+            modifier = torso.modifiers.new(name="Armature", type='ARMATURE')
+        modifier.object = armature
+        modifier.use_vertex_groups = True
+        
+        self.report({'INFO'}, "Roblox Follower Rig setup complete")
+        return {'FINISHED'}
+
+class VIEW3D_PT_roblox_follower_rig(Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Jax's Stuff"
+    bl_label = "Roblox Follower Rig"
+
+    def draw(self, context):
+        layout = self.layout
+        
+        armature = bpy.data.objects.get("Armature")
+        if armature and armature.select_get():
+            layout.label(text="Armature: Found", icon='CHECKMARK')
+        else:
+            layout.label(text="Armature: Not Found", icon='ERROR')
+        
+        selected_names = {obj.name for obj in context.selected_objects if obj.type == 'MESH'}
+        missing_parts = VALID_NAMES - selected_names
+        
+        layout.label(text=f"Parts: {len(selected_names)}/{len(VALID_NAMES)} Found", icon='INFO')
+        
+        if missing_parts:
+            layout.label(text=f"Missing: {', '.join(missing_parts)}", icon='ERROR')
+        
+        layout.operator("object.roblox_follower_rig")
+
+def register():
+    bpy.utils.register_class(ROBLOX_OT_follower_rig)
+    bpy.utils.register_class(VIEW3D_PT_roblox_follower_rig)
+
+def unregister():
+    bpy.utils.unregister_class(VIEW3D_PT_roblox_follower_rig)
+    bpy.utils.unregister_class(ROBLOX_OT_follower_rig)
+
+if __name__ == "__main__":
+    register()
